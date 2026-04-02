@@ -12,7 +12,7 @@
 * Micrometer Tracing + Zipkin - Distributed tracing - 9411
 
 ### Step 1: Clean build and start the service
-- \mvnw clean spring-boot:run
+- .\mvnw clean spring-boot:run
 
 ### Step 2: In another terminal — Start Prometheus, Grafana, and Zipkin
 - docker compose up -d
@@ -42,8 +42,8 @@ Get a single property
 - Invoke-RestMethod http://localhost:8081/properties/P1
 
 Create a new property
-- body = '"id":"P5","address":"10 Main St","owner":"Eve","rent":1900,"available":true,"type":"Condo"'
-- Invoke-RestMethod -Uri http://localhost:8081/properties -Method POST -Body body -ContentType "application/json"
+- $body = '{"id":"P5","address":"10 Main St","owner":"Eve","rent":1900,"available":true,"type":"Condo"}'
+- Invoke-RestMethod -Uri http://localhost:8081/properties -Method POST -Body $body -ContentType "application/json"
 
 Delete a property
 - Invoke-RestMethod -Uri http://localhost:8081/properties/P5 -Method DELETE
@@ -82,16 +82,16 @@ Open this in the browser:
 - Run the following queries:
 
 JVM heap memory used
-- jvmmemoryusedbytesarea="heap"
+- jvm_memory_used_bytes{area="heap"}
 
 HTTP request count rate (requests per second)
-- rate(httpserverrequestssecondscount[1m])
+- rate(http_server_requests_seconds_count[1m])
 
 Your custom business metric
-- domexapropertycreatedcounttotal
+- domexa_property_created_count_total
 
 Active properties gauge
-- domexapropertyactivecount
+- domexa_property_active_count
 
 ### Step 7: Grafana Dashboards
 
@@ -128,31 +128,31 @@ Click Run Query
 ### Step 9: Generate traffic so dashboards have data to show:
 
 Loop that hits your service every second for 3 minutes
-for (i = 0; i -lt 180; i++) {
+for ($i = 0; $i -lt 180; $i++) {
 try {
-Invoke-RestMethod http://localhost:8081/properties   Out-Null
-Invoke-RestMethod http://localhost:8081/properties/P1   Out-Null
-if (i % 5 -eq 0) {
-body = "{"id":"LOADi","address":"i Test St","owner":"Test","rent":1500,"available":true,"type":"Condo`"}"
-Invoke-RestMethod -Uri http://localhost:8081/properties -Method POST -Body body -ContentType "application/json"   Out-Null
+Invoke-RestMethod http://localhost:8081/properties | Out-Null
+Invoke-RestMethod http://localhost:8081/properties/P1 | Out-Null
+if ($i % 5 -eq 0) {
+$body = "{`"id`":`"LOAD$i`",`"address`":`"$i Test St`",`"owner`":`"Test`",`"rent`":1500,`"available`":true,`"type`":`"Condo`"}"
+Invoke-RestMethod -Uri http://localhost:8081/properties -Method POST -Body $body -ContentType "application/json" | Out-Null
 }
-if (i % 10 -eq 0) {
-try { Invoke-RestMethod http://localhost:8081/properties/slow   Out-Null } catch {}
+if ($i % 10 -eq 0) {
+try { Invoke-RestMethod http://localhost:8081/properties/slow | Out-Null } catch {}
 }
 } catch {}
 Start-Sleep -Seconds 1
-Write-Host "Request i of 180 sent"
+Write-Host "Request $i of 180 sent"
 }
 
 ### Step 10: Generating Zipkin Traces
 
 - Generate 10 traces quickly right before your Zipkin demo
-1..10   ForEach-Object {
-Invoke-RestMethod http://localhost:8081/properties   Out-Null
-Invoke-RestMethod "http://localhost:8081/properties/P(Get-Random -Minimum 1 -Maximum 4)"   Out-Null
-Write-Host "Trace $ sent"
-Start-Sleep -Milliseconds 500
-}
+  1..10 | ForEach-Object {
+  Invoke-RestMethod http://localhost:8081/properties | Out-Null
+  Invoke-RestMethod "http://localhost:8081/properties/P$(Get-Random -Minimum 1 -Maximum 4)" | Out-Null
+  Write-Host "Trace $_ sent"
+  Start-Sleep -Milliseconds 500
+  }
 
 - Invoke-RestMethod http://localhost:8081/properties/slow
 
